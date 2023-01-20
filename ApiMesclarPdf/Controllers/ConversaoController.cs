@@ -17,12 +17,13 @@ namespace ApiMesclarPdf.Controllers
         public ActionResult EnviaArquivo([FromForm] ICollection<IFormFile> arquivo)
         {        
             try
-            {                
+            {         
+                
                 ConverterPDF arquivoPdf = new ConverterPDF();    
 
                 var retFormato = arquivoPdf.ConverterEmByte(arquivo);
 
-                return  File(retFormato, arquivo.FirstOrDefault().ContentType, "Arquivos");
+                return File(retFormato, arquivo.FirstOrDefault().ContentType, "Arquivos.pdf");
             }
             catch (Exception ex)
             {

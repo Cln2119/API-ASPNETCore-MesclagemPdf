@@ -6,6 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 
 namespace ApiMesclarPdf.Controllers
 {
@@ -14,16 +17,24 @@ namespace ApiMesclarPdf.Controllers
     public class ConversaoController : ControllerBase
     {
         [HttpPost]
-        public ActionResult EnviaArquivo([FromForm] ICollection<IFormFile> arquivo)
+        public ActionResult EnviaArquivo([FromForm] List<IFormFile> arquivo)
         {        
             try
-            {         
-                
-                ConverterPDF arquivoPdf = new ConverterPDF();    
+            {
+                var result = new HttpResponseMessage(HttpStatusCode.OK);
+              
 
-                var retFormato = arquivoPdf.ConverterEmByte(arquivo);
+                if (arquivo.Count > 0)
+                {
+                    ConverterPDF arquivoPdf = new ConverterPDF();
 
-                return File(retFormato, arquivo.FirstOrDefault().ContentType, "Arquivos.pdf");
+                    var retFormato = arquivoPdf.ConverterEmByte(arquivo);
+
+                    return File(retFormato, arquivo.FirstOrDefault().ContentType, "Arquivo.pdf");
+                }
+
+                return Ok("Arquivos meclados com sucesso");
+
             }
             catch (Exception ex)
             {

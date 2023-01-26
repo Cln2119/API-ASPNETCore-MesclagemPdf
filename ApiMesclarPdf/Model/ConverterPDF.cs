@@ -5,10 +5,9 @@ using Microsoft.AspNetCore.Http;
 using PdfSharp.Pdf.IO;
 using iText.IO.Image;
 using iText.Kernel.Pdf;
-using iText.Layout;
 using PdfProperties = iText.Layout.Properties;
 using PdfImage = iText.Layout.Element.Image;
-using iTextSharp.text;
+
 
 namespace ApiMesclarPdf.Model
 {
@@ -18,9 +17,8 @@ namespace ApiMesclarPdf.Model
         {
             try
             {
-
                 List<byte[]> listByte = new List<byte[]>();
-                byte[] ConverterByte = null;
+                byte[] ConverterByte = null;          
                 byte[] result = null;
 
                 foreach (var formFile in filePaths)
@@ -31,7 +29,7 @@ namespace ApiMesclarPdf.Model
                     {
                         using (var stream = new MemoryStream())
                         {
-                            formFile.CopyToAsync(stream);
+                            formFile.CopyTo(stream);
                             listByte.Add(stream.ToArray());
                         }
                     }
@@ -39,13 +37,28 @@ namespace ApiMesclarPdf.Model
                     {
                         using (var stream = new MemoryStream())
                         {
-                            formFile.CopyToAsync(stream);
+                            formFile.CopyTo(stream);
                             ConverterByte = stream.ToArray();
+                        }
+
+                        //Validação de bytes se for igual a 0
+                        int count = 0;
+                        while (ConverterByte == null || ConverterByte.Length == 0)
+                        {
+                            count++;
+                            using (var stream = new MemoryStream())
+                            {
+                                formFile.CopyTo(stream);
+                                ConverterByte = stream.ToArray();
+                            }
+
+                            if (count >= 10 || ConverterByte.Length > 0)
+                                break;                      
                         }
 
                         var retorno = ConverterImageParaPDF(ConverterByte);
                         listByte.Add(retorno);
-                    }
+                    }                    
                 }
 
                 result = MergePdf(listByte);
@@ -93,29 +106,39 @@ namespace ApiMesclarPdf.Model
             }
             catch (Exception ex)
             {
-                throw new Exception("Erro realizar o Merge dos Pdf's. Mais detalhes " + ex);
+                throw new Exception("Erro realizar o Merge do Pdf. Mais detalhes " + ex);
             }
         }
 
         public static byte[] ConverterImageParaPDF(byte[] imageBytes)
         {
-            using (var mem = new MemoryStream())
+            try
             {
-                using (var pdfWriter = new PdfWriter(mem))
+                using (var me = new MemoryStream())
                 {
-                    var pdf = new PdfDocument(pdfWriter);
-                    var documento = new iText.Layout.Document(pdf);
+                    using (var pdfWriter = new PdfWriter(me))
+                    {
+                        var pdf = new PdfDocument(pdfWriter);
+                        var documento = new iText.Layout.Document(pdf);
+                        ImageData data = ImageDataFactory.Create(imageBytes);
+                        PdfImage img = new PdfImage(data)
+                        .SetAutoScale(true)
+                        .SetHorizontalAlignment(PdfProperties.HorizontalAlignment.CENTER);
 
-                    var img = new PdfImage(ImageDataFactory.Create(imageBytes));
-                        //.SetAutoScale(true)
-                        //.SetHorizontalAlignment(PdfProperties.HorizontalAlignment.CENTER);
-
-                    documento.Add(img);
-                    documento.Close();
-                    pdf.Close();
-                    return mem.ToArray();
+                        documento.Add(img);
+                        documento.Close();
+                        pdf.Close();
+                        return me.ToArray();
+                    }
                 }
+
             }
+            catch(Exception ex)
+            {
+                throw new Exception("Erro ao converter imagem em PDF. Mais detalhes: " + ex.Message);
+            }
+             
+            
         }
     }
 }
